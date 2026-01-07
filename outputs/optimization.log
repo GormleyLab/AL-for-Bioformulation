@@ -1,0 +1,226 @@
+2026-01-03 13:35:59,047 - INFO - ============================================================
+2026-01-03 13:35:59,048 - INFO - ANTIBODY FORMULATION OPTIMIZATION PIPELINE
+2026-01-03 13:35:59,048 - INFO - ============================================================
+2026-01-03 13:35:59,048 - INFO - ============================================================
+2026-01-03 13:35:59,048 - INFO - STARTING BOTORCH OPTIMIZATION PIPELINE
+2026-01-03 13:35:59,048 - INFO - ============================================================
+2026-01-03 13:35:59,048 - INFO - Step 1: Loading and processing data...
+2026-01-03 13:35:59,048 - INFO - Loading and processing data...
+2026-01-03 13:35:59,051 - INFO - Processing tm data...
+2026-01-03 13:35:59,052 - INFO - Expanding arrays from columns: tm, tm_std, concentration_tm
+2026-01-03 13:35:59,177 - INFO - Expanded from 72 formulations to 288 measurement points
+2026-01-03 13:35:59,179 - INFO -   tm: 288 samples, 7 features, created objective-specific scaler
+2026-01-03 13:35:59,179 - INFO - Processing diffusion data...
+2026-01-03 13:35:59,179 - INFO - Expanding arrays from columns: diff, diff_std, concentration_diff
+2026-01-03 13:35:59,294 - INFO - Expanded from 72 formulations to 284 measurement points
+2026-01-03 13:35:59,295 - INFO -   diffusion: 284 samples, 7 features, created objective-specific scaler
+2026-01-03 13:35:59,295 - INFO - Processing viscosity data...
+2026-01-03 13:35:59,295 - INFO - Expanding arrays from columns: visc, visc_std, concentration_visc
+2026-01-03 13:35:59,388 - INFO - Expanded from 72 formulations to 216 measurement points
+2026-01-03 13:35:59,389 - INFO -   viscosity: 216 samples, 7 features, created objective-specific scaler
+2026-01-03 13:35:59,392 - INFO - Step 2: Training GP models...
+2026-01-03 13:35:59,392 - INFO - Training GP models...
+2026-01-03 13:35:59,392 - INFO - Training model for tm...
+2026-01-03 13:35:59,392 - INFO -   Data shape for tm: X=torch.Size([288, 7]), y_target=torch.Size([288, 1])
+2026-01-03 13:35:59,402 - INFO -   y_target for tm (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:35:59,402 - INFO -   y_target for tm (stats): mean=0.6910, std=0.1513, min=0.0000, max=1.0000
+2026-01-03 13:36:00,113 - INFO - Successfully trained tm model
+2026-01-03 13:36:00,113 - INFO - Training model for diffusion...
+2026-01-03 13:36:00,113 - INFO -   Data shape for diffusion: X=torch.Size([284, 7]), y_target=torch.Size([284, 1])
+2026-01-03 13:36:00,113 - INFO -   y_target for diffusion (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:00,113 - INFO -   y_target for diffusion (stats): mean=0.6495, std=0.2037, min=0.0000, max=1.0000
+2026-01-03 13:36:00,782 - INFO - Successfully trained diffusion model
+2026-01-03 13:36:00,782 - INFO - Training model for viscosity...
+2026-01-03 13:36:00,782 - INFO -   Data shape for viscosity: X=torch.Size([216, 7]), y_target=torch.Size([216, 1])
+2026-01-03 13:36:00,782 - INFO -   y_target for viscosity (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:00,782 - INFO -   y_target for viscosity (stats): mean=0.3647, std=0.2604, min=0.0000, max=1.0000
+2026-01-03 13:36:01,147 - INFO - Successfully trained viscosity model
+2026-01-03 13:36:01,147 - INFO - Step 3: Cross-validating models...
+2026-01-03 13:36:01,149 - INFO - Training model for tm_fold...
+2026-01-03 13:36:01,149 - INFO -   Data shape for tm_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:01,149 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:36:01,149 - INFO -   y_target for tm_fold (stats): mean=0.6993, std=0.1388, min=0.3960, max=0.9903
+2026-01-03 13:36:01,430 - INFO - Training model for tm_fold...
+2026-01-03 13:36:01,430 - INFO -   Data shape for tm_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:01,430 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:36:01,430 - INFO -   y_target for tm_fold (stats): mean=0.6848, std=0.1544, min=0.0000, max=1.0000
+2026-01-03 13:36:01,777 - INFO - Training model for tm_fold...
+2026-01-03 13:36:01,777 - INFO -   Data shape for tm_fold: X=torch.Size([260, 7]), y_target=torch.Size([260, 1])
+2026-01-03 13:36:01,777 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:36:01,777 - INFO -   y_target for tm_fold (stats): mean=0.6979, std=0.1543, min=0.0000, max=1.0000
+2026-01-03 13:36:02,155 - INFO - Training model for tm_fold...
+2026-01-03 13:36:02,155 - INFO -   Data shape for tm_fold: X=torch.Size([260, 7]), y_target=torch.Size([260, 1])
+2026-01-03 13:36:02,156 - INFO -   y_target for tm_fold (first 5): [0.8218979620456821, 0.7506056557547156, 0.7476933624299029, 0.7511629611494461, 0.26597666892389604]
+2026-01-03 13:36:02,156 - INFO -   y_target for tm_fold (stats): mean=0.6857, std=0.1525, min=0.0000, max=1.0000
+2026-01-03 13:36:02,448 - INFO - Training model for tm_fold...
+2026-01-03 13:36:02,448 - INFO -   Data shape for tm_fold: X=torch.Size([260, 7]), y_target=torch.Size([260, 1])
+2026-01-03 13:36:02,448 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:36:02,448 - INFO -   y_target for tm_fold (stats): mean=0.6927, std=0.1525, min=0.0000, max=1.0000
+2026-01-03 13:36:02,881 - INFO - Training model for tm_fold...
+2026-01-03 13:36:02,881 - INFO -   Data shape for tm_fold: X=torch.Size([260, 7]), y_target=torch.Size([260, 1])
+2026-01-03 13:36:02,881 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:36:02,881 - INFO -   y_target for tm_fold (stats): mean=0.6897, std=0.1513, min=0.0000, max=1.0000
+2026-01-03 13:36:03,401 - INFO - Training model for tm_fold...
+2026-01-03 13:36:03,402 - INFO -   Data shape for tm_fold: X=torch.Size([260, 7]), y_target=torch.Size([260, 1])
+2026-01-03 13:36:03,402 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:36:03,402 - INFO -   y_target for tm_fold (stats): mean=0.6935, std=0.1544, min=0.0000, max=1.0000
+2026-01-03 13:36:03,642 - INFO - Training model for tm_fold...
+2026-01-03 13:36:03,643 - INFO -   Data shape for tm_fold: X=torch.Size([260, 7]), y_target=torch.Size([260, 1])
+2026-01-03 13:36:03,643 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.26597666892389604]
+2026-01-03 13:36:03,643 - INFO -   y_target for tm_fold (stats): mean=0.6924, std=0.1515, min=0.0000, max=1.0000
+2026-01-03 13:36:03,932 - INFO - Training model for tm_fold...
+2026-01-03 13:36:03,932 - INFO -   Data shape for tm_fold: X=torch.Size([260, 7]), y_target=torch.Size([260, 1])
+2026-01-03 13:36:03,932 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:36:03,932 - INFO -   y_target for tm_fold (stats): mean=0.6825, std=0.1517, min=0.0000, max=1.0000
+2026-01-03 13:36:04,295 - INFO - Training model for tm_fold...
+2026-01-03 13:36:04,296 - INFO -   Data shape for tm_fold: X=torch.Size([260, 7]), y_target=torch.Size([260, 1])
+2026-01-03 13:36:04,296 - INFO -   y_target for tm_fold (first 5): [0.9143169315958835, 0.8323180412551334, 0.7779324903928995, 0.7691610994276283, 0.8218979620456821]
+2026-01-03 13:36:04,296 - INFO -   y_target for tm_fold (stats): mean=0.6919, std=0.1505, min=0.0000, max=1.0000
+2026-01-03 13:36:04,695 - INFO - tm CV: Mean R² Across Folds= 0.746 ± 0.205
+2026-01-03 13:36:04,695 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:04,695 - INFO -   Data shape for diffusion_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:04,695 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:04,695 - INFO -   y_target for diffusion_fold (stats): mean=0.6497, std=0.2002, min=0.0000, max=1.0000
+2026-01-03 13:36:05,161 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:05,161 - INFO -   Data shape for diffusion_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:05,161 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:05,161 - INFO -   y_target for diffusion_fold (stats): mean=0.6451, std=0.2043, min=0.0000, max=1.0000
+2026-01-03 13:36:05,502 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:05,502 - INFO -   Data shape for diffusion_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:05,502 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:05,502 - INFO -   y_target for diffusion_fold (stats): mean=0.6477, std=0.2074, min=0.0000, max=1.0000
+2026-01-03 13:36:05,920 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:05,920 - INFO -   Data shape for diffusion_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:05,920 - INFO -   y_target for diffusion_fold (first 5): [0.4103169752729554, 0.3921474703093768, 0.32359888340133125, 0.27982689417089257, 0.5391552831965114]
+2026-01-03 13:36:05,920 - INFO -   y_target for diffusion_fold (stats): mean=0.6562, std=0.2092, min=0.0000, max=1.0000
+2026-01-03 13:36:06,369 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:06,369 - INFO -   Data shape for diffusion_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:06,369 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:06,369 - INFO -   y_target for diffusion_fold (stats): mean=0.6499, std=0.2033, min=0.0000, max=1.0000
+2026-01-03 13:36:06,837 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:06,837 - INFO -   Data shape for diffusion_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:06,837 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:06,837 - INFO -   y_target for diffusion_fold (stats): mean=0.6336, std=0.2051, min=0.0000, max=1.0000
+2026-01-03 13:36:07,204 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:07,204 - INFO -   Data shape for diffusion_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:07,204 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:07,204 - INFO -   y_target for diffusion_fold (stats): mean=0.6521, std=0.2017, min=0.0000, max=1.0000
+2026-01-03 13:36:07,687 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:07,687 - INFO -   Data shape for diffusion_fold: X=torch.Size([256, 7]), y_target=torch.Size([256, 1])
+2026-01-03 13:36:07,687 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.5391552831965114]
+2026-01-03 13:36:07,687 - INFO -   y_target for diffusion_fold (stats): mean=0.6603, std=0.2016, min=0.0000, max=1.0000
+2026-01-03 13:36:08,264 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:08,264 - INFO -   Data shape for diffusion_fold: X=torch.Size([254, 7]), y_target=torch.Size([254, 1])
+2026-01-03 13:36:08,264 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:08,264 - INFO -   y_target for diffusion_fold (stats): mean=0.6519, std=0.2059, min=0.0000, max=1.0000
+2026-01-03 13:36:08,747 - INFO - Training model for diffusion_fold...
+2026-01-03 13:36:08,747 - INFO -   Data shape for diffusion_fold: X=torch.Size([254, 7]), y_target=torch.Size([254, 1])
+2026-01-03 13:36:08,747 - INFO -   y_target for diffusion_fold (first 5): [0.5308964173039754, 0.4796914487702548, 0.38719215077385605, 0.3326836358831202, 0.4103169752729554]
+2026-01-03 13:36:08,747 - INFO -   y_target for diffusion_fold (stats): mean=0.6485, std=0.1972, min=0.1361, max=0.9901
+2026-01-03 13:36:09,180 - INFO - diffusion CV: Mean R² Across Folds= 0.781 ± 0.133
+2026-01-03 13:36:09,180 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:09,180 - INFO -   Data shape for viscosity_fold: X=torch.Size([192, 7]), y_target=torch.Size([192, 1])
+2026-01-03 13:36:09,180 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:09,180 - INFO -   y_target for viscosity_fold (stats): mean=0.3704, std=0.2637, min=0.0000, max=1.0000
+2026-01-03 13:36:09,484 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:09,484 - INFO -   Data shape for viscosity_fold: X=torch.Size([192, 7]), y_target=torch.Size([192, 1])
+2026-01-03 13:36:09,484 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:09,484 - INFO -   y_target for viscosity_fold (stats): mean=0.3655, std=0.2598, min=0.0000, max=1.0000
+2026-01-03 13:36:09,650 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:09,650 - INFO -   Data shape for viscosity_fold: X=torch.Size([195, 7]), y_target=torch.Size([195, 1])
+2026-01-03 13:36:09,650 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:09,650 - INFO -   y_target for viscosity_fold (stats): mean=0.3673, std=0.2632, min=0.0000, max=1.0000
+2026-01-03 13:36:09,849 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:09,849 - INFO -   Data shape for viscosity_fold: X=torch.Size([195, 7]), y_target=torch.Size([195, 1])
+2026-01-03 13:36:09,849 - INFO -   y_target for viscosity_fold (first 5): [0.1643220763158016, 0.29119435788239373, 0.8369763283967275, 0.11978408871995955, 0.27610026850960295]
+2026-01-03 13:36:09,849 - INFO -   y_target for viscosity_fold (stats): mean=0.3610, std=0.2587, min=0.0000, max=1.0000
+2026-01-03 13:36:10,125 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:10,125 - INFO -   Data shape for viscosity_fold: X=torch.Size([195, 7]), y_target=torch.Size([195, 1])
+2026-01-03 13:36:10,125 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:10,125 - INFO -   y_target for viscosity_fold (stats): mean=0.3651, std=0.2597, min=0.0000, max=1.0000
+2026-01-03 13:36:10,347 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:10,347 - INFO -   Data shape for viscosity_fold: X=torch.Size([195, 7]), y_target=torch.Size([195, 1])
+2026-01-03 13:36:10,347 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:10,347 - INFO -   y_target for viscosity_fold (stats): mean=0.3629, std=0.2604, min=0.0000, max=1.0000
+2026-01-03 13:36:10,639 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:10,639 - INFO -   Data shape for viscosity_fold: X=torch.Size([195, 7]), y_target=torch.Size([195, 1])
+2026-01-03 13:36:10,640 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:10,640 - INFO -   y_target for viscosity_fold (stats): mean=0.3684, std=0.2631, min=0.0000, max=1.0000
+2026-01-03 13:36:10,918 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:10,918 - INFO -   Data shape for viscosity_fold: X=torch.Size([195, 7]), y_target=torch.Size([195, 1])
+2026-01-03 13:36:10,919 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.11978408871995955, 0.27610026850960295]
+2026-01-03 13:36:10,919 - INFO -   y_target for viscosity_fold (stats): mean=0.3617, std=0.2567, min=0.0025, max=0.9744
+2026-01-03 13:36:11,325 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:11,325 - INFO -   Data shape for viscosity_fold: X=torch.Size([195, 7]), y_target=torch.Size([195, 1])
+2026-01-03 13:36:11,325 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:11,325 - INFO -   y_target for viscosity_fold (stats): mean=0.3620, std=0.2584, min=0.0000, max=1.0000
+2026-01-03 13:36:11,666 - INFO - Training model for viscosity_fold...
+2026-01-03 13:36:11,666 - INFO -   Data shape for viscosity_fold: X=torch.Size([195, 7]), y_target=torch.Size([195, 1])
+2026-01-03 13:36:11,667 - INFO -   y_target for viscosity_fold (first 5): [0.22314413342791, 0.33376991347115365, 0.9744277876148772, 0.1643220763158016, 0.29119435788239373]
+2026-01-03 13:36:11,667 - INFO -   y_target for viscosity_fold (stats): mean=0.3632, std=0.2607, min=0.0000, max=1.0000
+2026-01-03 13:36:12,047 - INFO - viscosity CV: Mean R² Across Folds= 0.868 ± 0.056
+2026-01-03 13:36:12,048 - INFO - Step 4: Retrieving best observed values...
+2026-01-03 13:36:12,048 - INFO - Step 5: Running single-objective optimization...
+2026-01-03 13:36:12,048 - INFO - Running single-objective optimization...
+2026-01-03 13:36:12,048 - INFO - Optimizing for single objective: tm
+2026-01-03 13:36:12,048 - INFO -   Target tm (maximization): best_f for qEI = 1.0000
+2026-01-03 13:36:13,092 - INFO -   Optimization for tm completed. Found 6 candidates (acq_value: 0.0019).
+2026-01-03 13:36:13,093 - INFO - Optimizing for single objective: diffusion
+2026-01-03 13:36:13,093 - INFO -   Target diffusion (maximization): best_f for qEI = 1.0000
+2026-01-03 13:36:13,934 - INFO -   Optimization for diffusion completed. Found 6 candidates (acq_value: 0.0114).
+2026-01-03 13:36:13,935 - INFO - Optimizing for single objective: viscosity
+2026-01-03 13:36:13,935 - INFO -   Target viscosity (minimization): best_f for qEI = -0.0000 (negated from 0.0000)
+2026-01-03 13:36:14,937 - INFO -   Optimization for viscosity completed. Found 6 candidates (acq_value: 1.0796).
+2026-01-03 13:36:14,937 - INFO - Step 6: Setting up multi-objective optimization...
+2026-01-03 13:36:14,937 - INFO - Created ModelListGP with 3 models: ['tm', 'diffusion', 'viscosity']
+2026-01-03 13:36:14,937 - INFO - Starting multi-objective optimization with qEHVI...
+2026-01-03 13:36:14,937 - INFO - Active model keys for MOO: ['tm', 'diffusion', 'viscosity']
+2026-01-03 13:36:14,937 - INFO - Found 72 common formulations across all objectives
+2026-01-03 13:36:14,937 - INFO - Using tm as reference objective for feature scaling in multi-objective
+2026-01-03 13:36:14,937 - INFO - Multi-objective alignment completed:
+2026-01-03 13:36:14,937 - INFO -   X shape: torch.Size([72, 7])
+2026-01-03 13:36:14,937 - INFO -   Number of objectives: 3
+2026-01-03 13:36:14,937 - INFO -   tm Y shape: torch.Size([72, 1])
+2026-01-03 13:36:14,937 - INFO -   diffusion Y shape: torch.Size([72, 1])
+2026-01-03 13:36:14,937 - INFO -   viscosity Y shape: torch.Size([72, 1])
+2026-01-03 13:36:14,937 - INFO -   Using tm targets as-is for multi-objective (maximization)
+2026-01-03 13:36:14,938 - INFO -   Using diffusion targets as-is for multi-objective (maximization)
+2026-01-03 13:36:14,939 - INFO -   Applied 1-x transformation to viscosity targets for multi-objective (minimization -> maximization)
+2026-01-03 13:36:14,939 - INFO - Multi-objective setup: X_baseline torch.Size([72, 7]), train_Y_active torch.Size([72, 3])
+2026-01-03 13:36:14,939 - INFO - MOO reference point: [0.0, 0.0, 0.0]
+2026-01-03 13:37:01,734 - INFO - Generated 6 multi-objective candidates using qEHVI (acq_value: 0.2723).
+2026-01-03 13:37:01,734 - INFO - Multi-objective optimization completed successfully.
+2026-01-03 13:37:01,734 - INFO - Step 7: Saving optimization results...
+2026-01-03 13:37:01,744 - INFO - Using tm's scaler for multi-objective candidates
+2026-01-03 13:37:01,773 - INFO - [OK] Candidates saved with proper concentration settings
+2026-01-03 13:37:01,773 - INFO - Saved 24 candidates to outputs/candidates/optimization_candidates.xlsx
+2026-01-03 13:37:01,776 - INFO - Saved tm model to outputs/models/tm_model.pkl
+2026-01-03 13:37:01,778 - INFO - Saved diffusion model to outputs/models/diffusion_model.pkl
+2026-01-03 13:37:01,781 - INFO - Saved viscosity model to outputs/models/viscosity_model.pkl
+2026-01-03 13:37:01,781 - INFO - Step 8: Running SHAP analysis...
+2026-01-03 13:37:02,731 - WARNING - Using 288 background data samples could cause slower run times. Consider using shap.sample(data, K) or shap.kmeans(data, K) to summarize the background as K samples.
+2026-01-03 13:37:44,827 - WARNING - Using 284 background data samples could cause slower run times. Consider using shap.sample(data, K) or shap.kmeans(data, K) to summarize the background as K samples.
+2026-01-03 13:38:26,199 - WARNING - Using 216 background data samples could cause slower run times. Consider using shap.sample(data, K) or shap.kmeans(data, K) to summarize the background as K samples.
+2026-01-03 13:38:47,964 - INFO - SHAP analysis completed successfully.
+2026-01-03 13:38:47,965 - INFO - Pipeline completed successfully!
+2026-01-03 13:38:47,965 - INFO - 
+==================================================
+2026-01-03 13:38:47,965 - INFO - OPTIMIZATION COMPLETED SUCCESSFULLY
+2026-01-03 13:38:47,965 - INFO - ==================================================
+2026-01-03 13:38:47,965 - INFO - Datasets processed: 3
+2026-01-03 13:38:47,965 - INFO - Models trained: 3
+2026-01-03 13:38:47,965 - INFO - Total candidates: 24
+2026-01-03 13:38:47,965 - INFO - Results saved to: outputs
+2026-01-03 13:38:47,965 - INFO - 
+Cross-validation results (Mean R² across folds):
+2026-01-03 13:38:47,965 - INFO -   tm: R² = 0.746 ± 0.205
+2026-01-03 13:38:47,965 - INFO -   diffusion: R² = 0.781 ± 0.133
+2026-01-03 13:38:47,965 - INFO -   viscosity: R² = 0.868 ± 0.056
+2026-01-03 13:38:47,965 - INFO - 
+Candidate breakdown:
+2026-01-03 13:38:47,965 - INFO -   tm: 6 candidates
+2026-01-03 13:38:47,965 - INFO -   diffusion: 6 candidates
+2026-01-03 13:38:47,965 - INFO -   viscosity: 6 candidates
+2026-01-03 13:38:47,965 - INFO -   multi_objective: 6 candidates
+2026-01-03 13:38:47,965 - INFO - 
+Pipeline completed successfully!
