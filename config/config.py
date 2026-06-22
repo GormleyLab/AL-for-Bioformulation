@@ -10,6 +10,11 @@ from pathlib import Path
 import yaml
 
 
+# Valid acquisition-function choices for the single- and multi-objective arms.
+VALID_SINGLE_ACQF = {"qEI", "qUCB", "greedy_cl"}
+VALID_MULTI_ACQF = {"qEHVI", "greedy_cl"}
+
+
 @dataclass
 class Config:
     """Configuration for BoTorch optimization pipeline."""
@@ -72,6 +77,22 @@ class Config:
     mc_samples: int = 128
     num_restarts: int = 10
     reference_point: List[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+
+    # Acquisition function selection
+    #
+    # single_acqf controls the single-objective optimization arm:
+    #   "qEI"       q-Expected Improvement (default; reproduces the published pipeline)
+    #   "qUCB"      q-Upper Confidence Bound (exploitative; uses ucb_beta below)
+    #   "greedy_cl" greedy posterior-mean with constant-liar (CL-min) batching (pure exploitation)
+    #
+    # multi_acqf controls the multi-objective arm:
+    #   "qEHVI"     q-Expected Hypervolume Improvement (default; reproduces the published pipeline)
+    #   "greedy_cl" greedy geometric-mean posterior with constant-liar batching (pure exploitation)
+    #
+    # NOTE: the "qEI"/"qEHVI" defaults preserve the exact published behavior. 
+    single_acqf: str = "qEI"
+    multi_acqf: str = "qEHVI"
+    ucb_beta: float = 0.1  # exploration weight for qUCB (only used when single_acqf == "qUCB")
     
 
 
@@ -98,6 +119,20 @@ class Config:
     run_shap_analysis: bool = True   # flag to run SHAP analysis
     shap_verbose: bool = False        # flag to print real-time progress of SHAP analysis
     
+    def __post_init__(self) -> None:
+        self.validate()
+
+    def validate(self) -> None:
+        """Validate enumerated config fields, raising ValueError on bad input."""
+        if self.single_acqf not in VALID_SINGLE_ACQF:
+            raise ValueError(
+                f"single_acqf must be one of {sorted(VALID_SINGLE_ACQF)}, got {self.single_acqf!r}"
+            )
+        if self.multi_acqf not in VALID_MULTI_ACQF:
+            raise ValueError(
+                f"multi_acqf must be one of {sorted(VALID_MULTI_ACQF)}, got {self.multi_acqf!r}"
+            )
+
     @property
     def torch_device(self) -> torch.device:
         """Get torch device."""
@@ -137,5 +172,8 @@ def load_config(config_path: Optional[str] = None) -> Config:
         for key, value in yaml_config.items():
             if hasattr(config, key):
                 setattr(config, key, value)
-    
+
+        # Re-validate after applying overrides (e.g. single_acqf / multi_acqf).
+        config.validate()
+
     return config

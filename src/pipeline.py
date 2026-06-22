@@ -21,7 +21,13 @@ from botorch.models import SingleTaskGP, ModelListGP
 from botorch.models.transforms.outcome import Standardize
 from botorch.models.transforms.input import Normalize
 from botorch.fit import fit_gpytorch_mll
-from botorch.acquisition import qExpectedImprovement
+from botorch.acquisition import (
+    AcquisitionFunction,
+    PosteriorMean,
+    qExpectedImprovement,
+    qUpperConfidenceBound,
+)
+from botorch.acquisition.objective import ScalarizedPosteriorTransform
 from botorch.acquisition.multi_objective import qExpectedHypervolumeImprovement
 from botorch.optim import optimize_acqf
 from botorch.sampling import SobolQMCNormalSampler
@@ -717,14 +723,159 @@ class ModelTrainer:
 
 class OptimizationEngine:
     """Handles acquisition function optimization."""
-    
+
     def __init__(self, config: Config):
         self.config = config
-    
+
+    def _build_bounds(self) -> torch.Tensor:
+        """Build the scaled [0,1]^d search bounds with antibody concentration fixed at 1.0.
+
+        Returns:
+            torch.Tensor: Bounds tensor of shape (2, n_features) on the config device.
+        """
+        n_features = len(self.config.feature_columns)
+        lower_bounds = [0.0] * n_features
+        upper_bounds = [1.0] * n_features
+
+        # Fix concentration at maximum (scaled value = 1.0) so predictions are made
+        # at the intended antibody concentration.
+        for feat_idx, feat in enumerate(self.config.feature_columns):
+            if feat == "Antibody Conc" or feat == "Concentration (mg/mL)":
+                lower_bounds[feat_idx] = 1.0
+                upper_bounds[feat_idx] = 1.0
+                break
+
+        return torch.tensor(
+            [lower_bounds, upper_bounds],
+            dtype=torch.float64,
+            device=self.config.torch_device,
+        )
+
+    @staticmethod
+    def _posterior_transform(direction: float):
+        """Return a ScalarizedPosteriorTransform(weights=[-1]) for minimization, else None.
+
+        This flips the sense of the acquisition function so they push toward LOWER y for
+        minimization objectives (e.g. viscosity). 
+        """
+        if direction < 0:
+            return ScalarizedPosteriorTransform(
+                weights=torch.tensor([-1.0], dtype=torch.float64)
+            )
+        return None
+
+    def _greedy_constant_liar_batch(
+        self,
+        model,
+        bounds: torch.Tensor,
+        direction: float = 1.0,
+        post_tf=None,
+        num_restarts: int = 5,
+        raw_samples: int = 256,
+    ) -> torch.Tensor:
+        """Sequential greedy q-batch via the CL-min constant-liar scheme.
+
+        Implements the "CL-min" variant of Ginsbourger, Le Riche & Carraro (2010):
+        after each pick x_i, condition the GP on a hallucinated observation at x_i
+        with target equal to the worst training y in scaled output space. Because
+        each objective is MinMax-scaled to [0, 1], that constant is 0 for
+        maximization objectives and 1 for minimization objectives. The conditioned
+        GP then "believes" it saw the worst possible outcome at x_i, depressing the
+        local posterior mean and forcing the next argmax elsewhere.
+        """
+        current_model = model
+        picks: List[torch.Tensor] = []
+        cl_constant = 0.0 if direction > 0 else 1.0
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            for i in range(self.config.batch_size):
+                af = PosteriorMean(current_model, posterior_transform=post_tf)
+                cand_i, _ = optimize_acqf(
+                    af,
+                    bounds=bounds,
+                    q=1,
+                    num_restarts=num_restarts,
+                    raw_samples=raw_samples,
+                    options={"maxiter": 200, "seed": i},
+                )
+                picks.append(cand_i)
+                fantasy_y = torch.full(
+                    (cand_i.shape[0], 1), cl_constant,
+                    dtype=cand_i.dtype, device=cand_i.device,
+                )
+                current_model = current_model.condition_on_observations(cand_i, fantasy_y)
+        return torch.cat(picks, dim=0)
+
+    def _greedy_constant_liar_moo_batch(
+        self,
+        model_list: ModelListGP,
+        active_keys: List[str],
+        bounds: torch.Tensor,
+        num_restarts: int = 5,
+        raw_samples: int = 256,
+    ) -> torch.Tensor:
+        """Greedy multi-objective q-batch via constant-liar batching.
+
+        Pure-exploitation analogue of qEHVI: each pick maximizes the
+        direction-adjusted geometric mean of the per-objective posterior means.
+        After each pick, every sub-GP is conditioned on the worst scaled outcome
+        (0 for maximization objectives, 1 for minimization) so subsequent picks
+        move to new regions (Ginsbourger 2010 CL-min, extended to MOO).
+        """
+        dirs = [self.config.objective_directions[k] for k in active_keys]
+        cl_constants = [0.0 if d > 0 else 1.0 for d in dirs]
+
+        class _GreedyMean(AcquisitionFunction):
+            """Score a candidate batch by its average direction-adjusted geometric-mean posterior."""
+
+            def __init__(self, model: ModelListGP, dirs: List[float]) -> None:
+                super().__init__(model=model)
+                self.dirs = dirs
+
+            def forward(self, X: torch.Tensor) -> torch.Tensor:
+                *batch_shape, q, d = X.shape
+                X_flat = X.reshape(-1, d)
+                post = self.model.posterior(X_flat)
+                mean = post.mean
+                adjusted = torch.stack(
+                    [m if di > 0 else 1 - m for m, di in zip(mean.unbind(-1), self.dirs)],
+                    dim=-1,
+                )
+                geo_mean = torch.clamp(adjusted, min=1e-6).log().mean(dim=-1).exp()
+                return geo_mean.view(*batch_shape, q).mean(dim=-1)
+
+        current_model_list = model_list
+        greedy_picks: List[torch.Tensor] = []
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            for step in range(self.config.batch_size):
+                greedy_af = _GreedyMean(current_model_list, dirs)
+                cand_i, _ = optimize_acqf(
+                    greedy_af,
+                    bounds=bounds,
+                    q=1,
+                    num_restarts=num_restarts,
+                    raw_samples=raw_samples,
+                    options={"maxiter": 200, "seed": step},
+                )
+                greedy_picks.append(cand_i)
+                conditioned = []
+                for k, sub in enumerate(current_model_list.models):
+                    fantasy_y_k = torch.full(
+                        (cand_i.shape[0], 1), cl_constants[k],
+                        dtype=cand_i.dtype, device=cand_i.device,
+                    )
+                    conditioned.append(sub.condition_on_observations(cand_i, fantasy_y_k))
+                current_model_list = ModelListGP(*conditioned)
+                current_model_list.active_model_keys = active_keys
+        return torch.cat(greedy_picks, dim=0)
+
     def optimize_single_objectives(self, data_processor: DataProcessor, models: Dict, best_values: Dict[str, float]) -> Dict[str, torch.Tensor]:
         """
-        Optimize single objectives using qEI with proper objective direction handling.
-        
+        Optimize single objectives using the configured acquisition function
+        (config.single_acqf: "qEI", "qUCB", or "greedy_cl") with proper objective
+        direction handling.
+
         Args:
             data_processor (DataProcessor): DataProcessor instance with scalers
             models (Dict): Dictionary mapping objective names to trained models
@@ -763,48 +914,60 @@ class OptimizationEngine:
                     logging.warning(f"  Invalid best_f value for {obj_name}: {best_f_for_qei}. Skipping optimization.")
                     continue
                 
-                # Create acquisition function
-                best_f = torch.tensor([best_f_for_qei], dtype=torch.float64)
+                # Build shared search bounds (concentration fixed at maximum) and sampler
+                bounds = self._build_bounds()
                 sampler = SobolQMCNormalSampler(
                     sample_shape=torch.Size([self.config.mc_samples]),
                     seed=self.config.random_state
                 )
-                qei = qExpectedImprovement(model, best_f, sampler=sampler)
-                
-                # Define bounds in scaled [0,1] space with concentration fixed at 1.0
-                n_features = len(self.config.feature_columns)
-                lower_bounds = [0.0] * n_features
-                upper_bounds = [1.0] * n_features
-                
-                # Fix concentration at maximum (scaled value = 1.0) to ensure predictions are made at correct antibody concentration
-                for feat_idx, feat in enumerate(self.config.feature_columns):
-                    if feat == "Antibody Conc" or feat == "Concentration (mg/mL)":
-                        lower_bounds[feat_idx] = 1.0
-                        upper_bounds[feat_idx] = 1.0
-                        logging.debug(f"  Fixed {feat} at maximum for {obj_name} optimization")
-                        break
-                
-                bounds = torch.tensor(
-                    [lower_bounds, upper_bounds],
-                    dtype=torch.float64,
-                    device=self.config.torch_device
-                )
 
-                # Optimize acquisition function
-                candidate, acq_value = optimize_acqf(
-                    qei, bounds=bounds, q=self.config.batch_size,
-                    num_restarts=self.config.num_restarts, raw_samples=500,
-                    options={"batch_limit": 5, "maxiter": 200}
-                )
-                
-                # Validate acquisition value
-                if acq_value < -100:
-                    logging.warning(f"  Extremely negative acquisition value for {obj_name}: {acq_value:.4f}. This may indicate numerical instability.")
-                elif acq_value < -10:
-                    logging.info(f"  Large negative acquisition value for {obj_name}: {acq_value:.4f}. Consider checking model quality.")
-                
+                acqf_choice = self.config.single_acqf
+                acq_value = None
+
+                if acqf_choice == "qEI":
+                    # Published behavior: qEI with best_f negated for minimization
+                    # objectives (no posterior transform).
+                    best_f = torch.tensor([best_f_for_qei], dtype=torch.float64)
+                    qei = qExpectedImprovement(model, best_f, sampler=sampler)
+                    candidate, acq_value = optimize_acqf(
+                        qei, bounds=bounds, q=self.config.batch_size,
+                        num_restarts=self.config.num_restarts, raw_samples=500,
+                        options={"batch_limit": 5, "maxiter": 200}
+                    )
+                elif acqf_choice == "qUCB":
+                    # Exploitative q-UCB. Minimization objectives use a
+                    # ScalarizedPosteriorTransform(weights=[-1]) so the AF pushes toward lower y.
+                    post_tf = self._posterior_transform(obj_direction)
+                    logging.info(f"  Using qUCB (beta={self.config.ucb_beta}) for {obj_name}")
+                    qucb = qUpperConfidenceBound(
+                        model, beta=self.config.ucb_beta, sampler=sampler, posterior_transform=post_tf,
+                    )
+                    candidate, acq_value = optimize_acqf(
+                        qucb, bounds=bounds, q=self.config.batch_size,
+                        num_restarts=self.config.num_restarts, raw_samples=500,
+                        options={"batch_limit": 5, "maxiter": 200}
+                    )
+                elif acqf_choice == "greedy_cl":
+                    # Pure-exploitation greedy posterior mean with constant-liar batching.
+                    post_tf = self._posterior_transform(obj_direction)
+                    logging.info(f"  Using greedy constant-liar selection for {obj_name}")
+                    candidate = self._greedy_constant_liar_batch(
+                        model, bounds, direction=obj_direction, post_tf=post_tf,
+                    )
+                else:
+                    logging.error(f"Unknown single_acqf '{acqf_choice}' for {obj_name}. Skipping.")
+                    continue
+
+                # Validate acquisition value (qEI / qUCB only; greedy CL reports none)
+                if acq_value is not None:
+                    if acq_value < -100:
+                        logging.warning(f"  Extremely negative acquisition value for {obj_name}: {acq_value:.4f}. This may indicate numerical instability.")
+                    elif acq_value < -10:
+                        logging.info(f"  Large negative acquisition value for {obj_name}: {acq_value:.4f}. Consider checking model quality.")
+
                 candidates[obj_name] = candidate
-                logging.info(f"  Optimization for {obj_name} completed. Found {candidate.shape[0]} candidates (acq_value: {acq_value:.4f}).")
+                acq_str = f" (acq_value: {acq_value:.4f})" if acq_value is not None else ""
+                logging.info(f"  Optimization for {obj_name} completed. Found {candidate.shape[0]} candidates{acq_str}.")
                 
             except Exception as e:
                 logging.error(f"Single objective optimization failed for {obj_name}: {e}")
@@ -905,50 +1068,38 @@ class OptimizationEngine:
 
             logging.info(f"MOO reference point: {ref_point.tolist()}")
 
-            # Configure sampler
-            sampler = SobolQMCNormalSampler(sample_shape=torch.Size([self.config.mc_samples]))
-            
-            # Create partitioning for qEHVI
-            partitioning = FastNondominatedPartitioning(ref_point=ref_point, Y=train_Y_active)
-            # Implement qEHVI acquisition function
-            qehvi = qExpectedHypervolumeImprovement(
-                model=model_list,
-                ref_point=ref_point.tolist(),
-                partitioning=partitioning,  
-                sampler=sampler
-            )
-            
-            # Define bounds in scaled [0,1] space with concentration fixed at 1.0
-            n_features = len(self.config.feature_columns)
-            lower_bounds = [0.0] * n_features
-            upper_bounds = [1.0] * n_features
-            
-            # Fix concentration at maximum (scaled value = 1.0) to ensure predictions are made at correct antibody concentration
-            for feat_idx, feat in enumerate(self.config.feature_columns):
-                if feat == "Antibody Conc" or feat == "Concentration (mg/mL)":
-                    lower_bounds[feat_idx] = 1.0
-                    upper_bounds[feat_idx] = 1.0
-                    logging.debug(f"  Fixed {feat} at maximum for multi-objective optimization")
-                    break
-            
-            bounds = torch.tensor(
-                [lower_bounds, upper_bounds],
-                dtype=torch.float64,
-                device=self.config.torch_device
-            )
-            
-            # Optimize acquisition function
-            candidates, acq_value = optimize_acqf(
-                acq_function=qehvi,
-                bounds=bounds,
-                q=self.config.batch_size,
-                num_restarts=self.config.num_restarts,
-                raw_samples=500,
-                options={"batch_limit": 5, "maxiter": 200}
-            )
-            
-            logging.info(f"Generated {candidates.shape[0]} multi-objective candidates using qEHVI (acq_value: {acq_value:.4f}).")
-            return candidates
+            # Build shared search bounds (concentration fixed at maximum)
+            bounds = self._build_bounds()
+
+            if self.config.multi_acqf == "qEHVI":
+                # Published behavior: qEHVI with a fixed reference point.
+                sampler = SobolQMCNormalSampler(sample_shape=torch.Size([self.config.mc_samples]))
+                partitioning = FastNondominatedPartitioning(ref_point=ref_point, Y=train_Y_active)
+                qehvi = qExpectedHypervolumeImprovement(
+                    model=model_list,
+                    ref_point=ref_point.tolist(),
+                    partitioning=partitioning,
+                    sampler=sampler
+                )
+                candidates, acq_value = optimize_acqf(
+                    acq_function=qehvi,
+                    bounds=bounds,
+                    q=self.config.batch_size,
+                    num_restarts=self.config.num_restarts,
+                    raw_samples=500,
+                    options={"batch_limit": 5, "maxiter": 200}
+                )
+                logging.info(f"Generated {candidates.shape[0]} multi-objective candidates using qEHVI (acq_value: {acq_value:.4f}).")
+                return candidates
+            elif self.config.multi_acqf == "greedy_cl":
+                # Pure-exploitation greedy geometric-mean with constant-liar batching.
+                logging.info("Using greedy constant-liar selection for multi-objective optimization")
+                candidates = self._greedy_constant_liar_moo_batch(model_list, active_keys, bounds)
+                logging.info(f"Generated {candidates.shape[0]} multi-objective candidates using greedy constant-liar.")
+                return candidates
+            else:
+                logging.error(f"Unknown multi_acqf '{self.config.multi_acqf}'. Skipping multi-objective optimization.")
+                return None
             
         except Exception as e:
             logging.error(f"Error during qEHVI optimization: {e}", exc_info=True)
